@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+	       http://www.springframework.org/schema/beans  http://www.springframework.org/schema/beans/spring-beans-2.4.a.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+           http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-2.5.xsd
+           http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-2.5.xsd
+           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.5.xsd
+           http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+           http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+	
+	<description>Spring公共配置</description>
+	
+	<!-- 开启定时任务 -->
+	<task:annotation-driven/>
+	
+	<!-- MyBatis配置 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	    <property name="dataSource" ref="dataSource"></property>
+	    <!-- 显式指定Mapper文件位置 -->
+	    <property name="mapperLocations" value="classpath*:/mybatis/*Mapper.xml"></property>
+	    <property name="configLocation" value="classpath*:/mybatis/config.xml"></property>
+	</bean>
+	
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+	     <constructor-arg index="0" ref="sqlSessionFactory"></constructor-arg>
+	     <constructor-arg index="1" value="BATCH"></constructor-arg>
+	</bean>
+	
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	    <!-- 映射器接口文件的包路径 -->
+	    <property name="basePackage" value="com.cn.ttdx.dao"></property>
+	</bean>
+	
+	<!-- 使用annotation定义事务 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransaction">
+	     <property name="dataSource" ref="dataSource"></property>
+	</bean>
+	<tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true"/>
+	
+	<!-- 数据源配置，使用Tomcat JDBC连接池 -->
+	<bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+	     <!-- Connection Info -->
+	     <property name="driverClassName" value="${jdbc.driver}"></property>
+	     <property name="url" value="${jdbc.url}"></property>
+	     <property name="username" value="${jdbc.username}"></property>
+	     <property name="password" value="${jdbc.password}"></property>
+	     
+	     <!-- Connection Pooling Info -->
+	     <property name="maxActive" value="${jdbc.pool.maxActive}"></property>
+	     <property name="maxIdle" value="${jdbc.pool.maxIdle}"></property>
+	     <property name="minIdle" value="0"></property>
+	     <property name="defaultAutoCommit" value="false"></property>
+	</bean>
+	
+	<!-- production环境 -->
+	<beans profile="production">
+	      <context:property-placeholder ignore-unresolvable="true" file-encoding="utf-8" 
+	      location="classpath:properties.classpath:jdbc.properties"/>
+	</beans>
+	
+	<context:annotation-config/>
+	<context:component-scan base-package="com.lyq"/>
+	<!-- 配置sessionFactory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		<property name="configLocation">
+			<value>classpath:hibernate.cfg.xml</value>
+		</property>
+	</bean>
+	<!-- 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory">
+			<ref bean="sessionFactory" />
+		</property>
+	</bean>
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<!-- 定义Hibernate模板对象 -->
+	<bean id="hibernateTemplate" class="org.springframework.orm.hibernate3.HibernateTemplate">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+</beans>
